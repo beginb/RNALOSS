@@ -110,7 +110,6 @@ mean(theor$GCPercentage)
 
 ## Experiment
 ```{r}
-#Reading File
 # Read in File
 theor <-  read.fasta(file = "./dd_Smed_v6.pcf.contigs.fasta", 
   seqtype ="DNA", as.string = TRUE, forceDNAtolower = TRUE,
@@ -125,7 +124,6 @@ theor_len <- unlist(theor_len)
 theor <- data.frame(smedID = names(theor),Length = theor_len, Counts = rep(1,length(theor_len)))
 
 ```
-
 
 ```{r}
 actual <- readRDS("~/Desktop/PROJECT/DGEregen.RDS")  # Import Data (RDS - R Data Structure)
