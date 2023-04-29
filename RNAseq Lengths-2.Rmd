@@ -1,0 +1,163 @@
+---
+title: "Gene Length and GC Percentage"
+output: html_document
+date: "2022-11-08"
+---
+Overarching Question: What genes lengths are present after extraction when comparing the planarian transcriptome to a sample? 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(seqinr)
+library(readr)
+library(dplyr)
+library(viridis)
+library(ggplot2)
+library(stringr)
+```
+
+#Experiment
+```{r}
+# Read in File
+theor <-  read.fasta(file = "./dd_Smed_v6.pcf.contigs.fasta", 
+  seqtype ="DNA", as.string = TRUE, forceDNAtolower = TRUE,
+  set.attributes = TRUE, legacy.mode = TRUE, seqonly = FALSE, strip.desc = FALSE,
+  whole.header = FALSE,
+  bfa = FALSE, sizeof.longlong = .Machine$sizeof.longlong,
+  endian = .Platform$endian, apply.mask = TRUE)
+
+
+# Clean Data
+theor_len <- unlist(theor)
+theor <- data.frame(smedID = names(theor),Length = theor_len, Counts = rep(1,length(theor_len)))
+theor <- theor[,-3]
+colnames(theor) <- c("ID", "Length")
+
+saviour <- nchar 
+theor$BaseLengths <- lapply(theor$Length, FUN = saviour) 
+theor <- data.frame(theor)
+
+G <- str_count(theor$Length, "g")
+theor$Grepeats <- data.frame(G)
+
+C <- str_count(theor$Length, "c")
+theor$Crepeats <- data.frame(C)
+
+theor$totalGC <- rowSums(cbind(theor$Grepeats, theor$Crepeats), na.rm = T)
+
+theor$GCPercentage <- theor$totalGC / as.numeric(theor$BaseLengths)
+
+theor <- theor[,-1:-2]
+theor <- theor[,-2:-4]
+
+theor <- as.data.frame(lapply(theor, unlist))
+
+sugarmommy <- theor[order(theor$BaseLengths),] 
+sugarmommy <- sugarmommy[c(1:10000),]
+
+sum(sugarmommy$GCPercentage>0.50 & sugarmommy$GCPercentage<0.60)/length(sugarmommy$GCPercentage)
+sum(sugarmommy$GCPercentage>0.70 & sugarmommy$GCPercentage<1)/length(sugarmommy$GCPercentage)
+sum(sugarmommy$GCPercentage>0 & sugarmommy$GCPercentage<0.4)/length(sugarmommy$GCPercentage)
+
+#Only 3.37% of transcripts have optimal GC content in between 50/60%
+#81.73% of the data lies the 0 to 40% zone where coverage is hard to get.
+
+```
+
+#Finding the GC content in the 3500 to 5000 range
+```{r}
+# Read in File
+theor <-  read.fasta(file = "./dd_Smed_v6.pcf.contigs.fasta", 
+  seqtype ="DNA", as.string = TRUE, forceDNAtolower = TRUE,
+  set.attributes = TRUE, legacy.mode = TRUE, seqonly = FALSE, strip.desc = FALSE,
+  whole.header = FALSE,
+  bfa = FALSE, sizeof.longlong = .Machine$sizeof.longlong,
+  endian = .Platform$endian, apply.mask = TRUE)
+
+
+# Clean Data
+theor_len <- unlist(theor)
+theor <- data.frame(smedID = names(theor),Length = theor_len, Counts = rep(1,length(theor_len)))
+theor <- theor[,-3]
+colnames(theor) <- c("ID", "Length")
+
+saviour <- nchar 
+theor$BaseLengths <- lapply(theor$Length, FUN = saviour) 
+theor <- data.frame(theor)
+
+G <- str_count(theor$Length, "g")
+theor$Grepeats <- data.frame(G)
+
+C <- str_count(theor$Length, "c")
+theor$Crepeats <- data.frame(C)
+
+theor$totalGC <- rowSums(cbind(theor$Grepeats, theor$Crepeats), na.rm = T)
+
+theor$GCPercentage <- theor$totalGC / as.numeric(theor$BaseLengths)
+
+theor <- theor[,-1:-2]
+theor <- theor[,-2:-4]
+
+theor <- as.data.frame(lapply(theor, unlist))
+
+sugarmommy <- theor[order(theor$BaseLengths),] 
+#sugarmommy <- sugarmommy[c(30000:40000),]
+
+sum(sugarmommy$GCPercentage>0.50 & sugarmommy$GCPercentage<0.60)/length(sugarmommy$GCPercentage)
+sum(sugarmommy$GCPercentage>0.70 & sugarmommy$GCPercentage<1)/length(sugarmommy$GCPercentage)
+sum(sugarmommy$GCPercentage>0 & sugarmommy$GCPercentage<0.4)/length(sugarmommy$GCPercentage)
+
+mean(theor$GCPercentage)
+```
+
+## Experiment
+```{r}
+#Reading File
+# Read in File
+theor <-  read.fasta(file = "./dd_Smed_v6.pcf.contigs.fasta", 
+  seqtype ="DNA", as.string = TRUE, forceDNAtolower = TRUE,
+  set.attributes = TRUE, legacy.mode = TRUE, seqonly = FALSE, strip.desc = FALSE,
+  whole.header = FALSE,
+  bfa = FALSE, sizeof.longlong = .Machine$sizeof.longlong,
+  endian = .Platform$endian, apply.mask = TRUE)
+  
+# Clean Data
+theor_len <- lapply(theor, FUN = function(x){nchar(x)})
+theor_len <- unlist(theor_len)
+theor <- data.frame(smedID = names(theor),Length = theor_len, Counts = rep(1,length(theor_len)))
+
+```
+
+
+```{r}
+actual <- readRDS("~/Desktop/PROJECT/DGEregen.RDS")  # Import Data (RDS - R Data Structure)
+actual <- as.data.frame(actual$counts)  
+actual$counts <- rowSums(actual)  
+actual$id <- rownames(actual)
+actual <- actual[,c("id","counts")]
+
+
+
+totaldf <- merge(theor, actual, by=1, all = TRUE)
+colnames(totaldf) <- c("ID", "Length", "expCount", "actCount")
+
+
+
+totaldf <- totaldf %>% group_by(Length) %>% 
+  summarise(expCount=sum(expCount), actCount = sum(actCount)) 
+totaldf$actCount[is.na(totaldf$actCount)] <- 0
+
+totaldf <- na.omit(totaldf)
+```
+
+Indexing in R Notes:
+
+
+```{r}
+plot(density(totaldf$Length,
+     weights = totaldf$expCount/sum(totaldf$expCount), 
+              bw="SJ"), col="black",main = "")
+lines(density(totaldf$Length,
+     weights = totaldf$actCount/sum(totaldf$actCount), 
+              bw="SJ"), col="red")
+legend("topright",legend =c("Expected", "Actual"), text.col = c("black", "red"))
+```
+
