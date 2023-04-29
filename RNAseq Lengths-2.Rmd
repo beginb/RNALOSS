@@ -148,9 +148,7 @@ totaldf$actCount[is.na(totaldf$actCount)] <- 0
 totaldf <- na.omit(totaldf)
 ```
 
-Indexing in R Notes:
-
-
+## Density Plot of Expected and Actual Transcript Counts from RNA Extraction
 ```{r}
 plot(density(totaldf$Length,
      weights = totaldf$expCount/sum(totaldf$expCount), 
